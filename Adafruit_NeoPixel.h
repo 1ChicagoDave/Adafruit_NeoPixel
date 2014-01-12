@@ -34,10 +34,11 @@
 // Trinket flash space is tight, v1 NeoPixels aren't handled by default.
 // Remove the ifndef/endif to add support -- but code will be bigger.
 // Conversely, can comment out the #defines to save space on other MCUs.
-#ifndef __AVR_ATtiny85__
+// #ifndef __AVR_ATtiny85__
 #define NEO_RGB     0x00 // Wired for RGB data order
 #define NEO_KHZ400  0x00 // 400 KHz datastream
-#endif
+// #endif
+
 
 class Adafruit_NeoPixel {
 
