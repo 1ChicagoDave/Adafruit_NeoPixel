@@ -68,7 +68,7 @@ void Adafruit_NeoPixel::show(void) {
   // allows the mainline code to start generating the next frame of data
   // rather than stalling for the latch.
   while((micros() - endTime) < 50L);
-  // endTime is a private member (rather than global var) so that mutliple
+  // endTime is a private member (rather than global var) so that multiple
   // instances on different pins can be quickly issued in succession (each
   // instance doesn't delay the next).
 
@@ -341,16 +341,16 @@ void Adafruit_NeoPixel::show(void) {
       "out   %[port], %[next]"  "\n\t" // 1    PORT = next   (T =  4)	port
       "mov  %[next] , %[lo]"    "\n\t" // 1    next = lo     (T =  5)
       "dec  %[bit]"             "\n\t" // 1    bit--         (T =  6)
-      "breq nextbyte20"         "\n\t" // 1-2  if(bit == 0)
+      "breq nextbyte20"         "\n\t" // 1-2  if(bit == 0) skip to code at 'nextbyte20:'
 
       "rol  %[byte]"            "\n\t" // 1    b <<= 1       (T = 8)
       "rjmp .+0"                "\n\t" // 2    nop nop       (T = 10)	
       "out   %[port], %[lo]"    "\n\t" // 1    PORT = lo     (T = 11)	port
       "rjmp .+0"                "\n\t" // 2    nop nop       (T = 13)
       "rjmp .+0"                "\n\t" // 2    nop nop       (T = 15)
-      "rjmp .+0"                "\n\t" // 2    nop nop  	 (T = 17)	// + 1
-      "nop"                     "\n\t" // 1    nop     		 (T = 18)	
-      "rjmp head20"             "\n\t" // 2    -> head20 (next bit out)
+      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 17)	
+      "nop"                     "\n\t" // 1    nop           (T = 18)	
+      "rjmp head20"             "\n\t" // 2    -> head20 (next bit out). Back to the top!
     
       "nextbyte20:"             "\n\t" //                    (T = 8)
       "nop"                     "\n\t" // 1    nop           (T = 9)
@@ -360,16 +360,16 @@ void Adafruit_NeoPixel::show(void) {
       "ldi  %[bit]  , 8"        "\n\t" // 1    bit = 8       (T = 14)
       "ld   %[byte] , %a[ptr]+" "\n\t" // 2    b = *ptr++    (T = 16)
       "sbiw %[count], 1"        "\n\t" // 2    i--           (T = 18)
-      "brne head20"             "\n"   // 2    if(i != 0) -> (next byte)
+      "brne head20"             "\n"   // 2    if(i != 0) -> (next byte)   Back to the top!
 
       : [byte]  "+r" (b),
         [bit]   "+r" (bit),
         [next]  "+r" (next),
         [count] "+w" (i)
       : [port]   "I" (_SFR_IO_ADDR(PORTB)),
-      	[hi]    "r" (hi),
-        [lo]    "r" (lo),
-        [ptr]   "e" (ptr));
+      	[hi]     "r" (hi),
+        [lo]     "r" (lo),
+        [ptr]    "e" (ptr));
   }
 #endif
 
@@ -507,7 +507,7 @@ void Adafruit_NeoPixel::show(void) {
   } else { // 400 KHz
 
     // 30 instruction clocks per bit: HHHHHHxxxxxxxxxLLLLLLLLLLLLLLL
-    // ST instructions:               ^     ^        ^    (T=0,6,15)
+    // ST instructions:               ^     ^        ^    (T=1,7,16)
 
     volatile uint8_t next, bit;
 
@@ -518,30 +518,33 @@ void Adafruit_NeoPixel::show(void) {
 
     asm volatile(
      "head30:"                  "\n\t" // Clk  Pseudocode    (T =  0)
-      "st   %a[port], %[hi]"    "\n\t" // 2    PORT = hi     (T =  2)
+      "st   %a[port], %[hi]"    "\n\t" // 2    PORT = hi     (T =  2)  port
       "sbrc %[byte] , 7"        "\n\t" // 1-2  if(b & 128)
-       "mov  %[next], %[hi]"    "\n\t" // 0-1   next = hi    (T =  4)
+      "mov  %[next], %[hi]"     "\n\t" // 0-1   next = hi    (T =  4)
       "rjmp .+0"                "\n\t" // 2    nop nop       (T =  6)
-      "st   %a[port], %[next]"  "\n\t" // 2    PORT = next   (T =  8)
+      "st   %a[port], %[next]"  "\n\t" // 2    PORT = next   (T =  8)  port
       "rjmp .+0"                "\n\t" // 2    nop nop       (T = 10)
       "rjmp .+0"                "\n\t" // 2    nop nop       (T = 12)
       "rjmp .+0"                "\n\t" // 2    nop nop       (T = 14)
       "nop"                     "\n\t" // 1    nop           (T = 15)
-      "st   %a[port], %[lo]"    "\n\t" // 2    PORT = lo     (T = 17)
+      "st   %a[port], %[lo]"    "\n\t" // 2    PORT = lo     (T = 17)  port
       "rjmp .+0"                "\n\t" // 2    nop nop       (T = 19)
       "dec  %[bit]"             "\n\t" // 1    bit--         (T = 20)
-      "breq nextbyte30"         "\n\t" // 1-2  if(bit == 0)
+      "breq nextbyte30"         "\n\t" // 1-2  if(bit == 0) skip to code after "nextbyte30:"
+
       "rol  %[byte]"            "\n\t" // 1    b <<= 1       (T = 22)
       "rjmp .+0"                "\n\t" // 2    nop nop       (T = 24)
       "rjmp .+0"                "\n\t" // 2    nop nop       (T = 26)
       "rjmp .+0"                "\n\t" // 2    nop nop       (T = 28)
-      "rjmp head30"             "\n\t" // 2    -> head30 (next bit out)
+      "rjmp head30"             "\n\t" // 2    -> head30 (next bit out)  back to the top!
+  
      "nextbyte30:"              "\n\t" //                    (T = 22)
       "nop"                     "\n\t" // 1    nop           (T = 23)
       "ldi  %[bit]  , 8"        "\n\t" // 1    bit = 8       (T = 24)
       "ld   %[byte] , %a[ptr]+" "\n\t" // 2    b = *ptr++    (T = 26)
       "sbiw %[count], 1"        "\n\t" // 2    i--           (T = 28)
-      "brne head30"             "\n"   // 1-2  if(i != 0) -> (next byte)
+      "brne head30"             "\n"   // 1-2  if(i != 0) -> (next byte)  back to the top!
+
       : [port]  "+e" (port),
         [byte]  "+r" (b),
         [bit]   "+r" (bit),
@@ -564,7 +567,7 @@ void Adafruit_NeoPixel::show(void) {
     // similar but NOT an exact copy of the prior 400-on-8 code.
 
     // 20 inst. clocks per bit: HHHHHxxxxxxxxLLLLLLL
-    // ST instructions:         ^   ^        ^       (T=0,5,13)
+    // ST instructions:         ^    ^       ^       (T=0,5,13)
 
     volatile uint8_t next, bit;
 
@@ -611,7 +614,7 @@ void Adafruit_NeoPixel::show(void) {
     // The 400 KHz clock on 16 MHz MCU is the most 'relaxed' version.
 
     // 40 inst. clocks per bit: HHHHHHHHxxxxxxxxxxxxLLLLLLLLLLLLLLLLLLLL
-    // ST instructions:         ^       ^           ^         (T=0,8,20)
+    // ST instructions:         ^       ^           ^         (T=1,9,21)
 
     volatile uint8_t next, bit;
 
@@ -622,40 +625,41 @@ void Adafruit_NeoPixel::show(void) {
 
     asm volatile(
      "head40:"                  "\n\t" // Clk  Pseudocode    (T =  0)
-      "st   %a[port], %[hi]"    "\n\t" // 2    PORT = hi     (T =  2)
+      "st   %a[port], %[hi]"    "\n\t" // 2    PORT = hi     (T =  2)  port
       "sbrc %[byte] , 7"        "\n\t" // 1-2  if(b & 128)
-       "mov  %[next] , %[hi]"   "\n\t" // 0-1   next = hi    (T =  4)
-      "st   %a[port], %[next]"  "\n\t" // 2    PORT = next   (T = 10)			/// MOVED TO HERE
-	  "rjmp .+0"                "\n\t" // 2    nop nop       (T =  6)
+      "mov  %[next] , %[hi]"    "\n\t" // 0-1  next = hi     (T =  4)  
+      "st   %a[port], %[next]"  "\n\t" // 2    PORT = next   (T =  6)  port		
       "rjmp .+0"                "\n\t" // 2    nop nop       (T =  8)
+      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 10)
       "rjmp .+0"                "\n\t" // 2    nop nop       (T = 12)
       "rjmp .+0"                "\n\t" // 2    nop nop       (T = 14)
       "rjmp .+0"                "\n\t" // 2    nop nop       (T = 16)
       "rjmp .+0"                "\n\t" // 2    nop nop       (T = 18)
       "rjmp .+0"                "\n\t" // 2    nop nop       (T = 20)
-      "st   %a[port], %[lo]"    "\n\t" // 2    PORT = lo     (T = 22)
+      "st   %a[port], %[lo]"    "\n\t" // 2    PORT = lo     (T = 22)  port
       "nop"                     "\n\t" // 1    nop           (T = 23)
       "mov  %[next] , %[lo]"    "\n\t" // 1    next = lo     (T = 24)
       "dec  %[bit]"             "\n\t" // 1    bit--         (T = 25)
-      "breq nextbyte40"         "\n\t" // 1-2  if(bit == 0)
+      "breq nextbyte40"         "\n\t" // 1-2  if(bit == 0)  skip to code after "nextbyte40:"
      
       "rol  %[byte]"            "\n\t" // 1    b <<= 1       (T = 27)
-      "nop"                     "\n\t" // 1    nop           (T = 28)
-      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 30)
-      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 32)
-      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 34)
-      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 36)
-      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 38)
-      "rjmp head40"             "\n\t" // 2    -> head40 (next bit out)
+      "nop"                     "\n\t" // 1    nop           (T = 28)  -------
+      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 30)     |
+      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 32)  waiting...
+      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 34)     |
+      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 36)     |
+      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 38)  -------
+      "rjmp head40"             "\n\t" // 2    -> head40 (next bit out)  back to top!
    
      "nextbyte40:"              "\n\t" //                    (T = 27)
       "ldi  %[bit]  , 8"        "\n\t" // 1    bit = 8       (T = 28)
       "ld   %[byte] , %a[ptr]+" "\n\t" // 2    b = *ptr++    (T = 30)
-      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 32)
-      "st   %a[port], %[lo]"    "\n\t" // 2    PORT = lo     (T = 34)
-      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 36)
+      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 32)  -------
+      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 34)  waiting...
+      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 36)  -------
       "sbiw %[count], 1"        "\n\t" // 2    i--           (T = 38)
-      "brne head40"             "\n"   // 1-2  if(i != 0) -> (next byte)
+      "brne head40"             "\n"   // 1-2  if(i != 0) -> (next byte)  back to top!
+
       : [port]  "+e" (port),
         [byte]  "+r" (b),
         [bit]   "+r" (bit),
