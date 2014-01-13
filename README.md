@@ -1,4 +1,3 @@
-
 This is only my fork of the.....
 
 Adafruit NeoPixel library
@@ -6,7 +5,7 @@ Adafruit NeoPixel library
 
 The code contained here may or may not work as, or even resemble, the original libraries. Use at own risk!
 
-This repo is mainly for reference and experimental purposes. Please feel free to explore the source and wiki for more information. I welcome any feedback or observations you may have. 
+This repo is mainly for reference and experimental purposes. Please feel free to explore the source and wiki for more information. In an attempt to further collate & disseminate as much factual knowledge as I can about these tricky little glowy wonders, I am also depositing data, experiences, discoveries, and relevant links into the [Wiki](https://github.com/1ChicagoDave/Adafruit_NeoPixel/wiki) associated with this repo. I welcome any feedback, questions, corrections, or observations you may have. 
 
 Thanks!
 
