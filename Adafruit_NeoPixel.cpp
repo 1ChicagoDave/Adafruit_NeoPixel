@@ -326,6 +326,11 @@ void Adafruit_NeoPixel::show(void) {
     // 18 inst. clocks per bit: HHHxxxxxxxLLLLLLLL
     // ST instructions:         ^  ^      ^        (T=1,4,11)
 
+    // At 8 Mhz, each clock tick is about 125 nanoseconds
+    // Signal timing for each bit with this code should be:
+    // HIGH 375ns + Bit 875ns + LOW 1000ns = 2250ns/bit
+
+
     volatile uint8_t next, bit;
 
     hi   = *port |  pinMask;
@@ -334,7 +339,7 @@ void Adafruit_NeoPixel::show(void) {
     bit  = 8;
 
     asm volatile(
-     "head20:"                  "\n\t" // Clk  Pseudocode    (T =  0)
+     "head20:"                  "\n\t" // Clk  Pseudocode    (T =  0) 
       "out   %[port], %[hi]"    "\n\t" // 1    PORT = hi     (T =  1)	port
       "sbrc %[byte] , 7"        "\n\t" // 1-2  if(b & 128)
       "mov  %[next], %[hi]"     "\n\t" // 0-1  next = hi     (T =  3)
@@ -613,8 +618,12 @@ void Adafruit_NeoPixel::show(void) {
 
     // The 400 KHz clock on 16 MHz MCU is the most 'relaxed' version.
 
-    // 40 inst. clocks per bit: HHHHHHHHxxxxxxxxxxxxLLLLLLLLLLLLLLLLLLLL
-    // ST instructions:         ^       ^           ^         (T=1,9,21)
+    // 40 inst. clocks per bit: HHHHxxxxxxxxxxxxxxxxLLLLLLLLLLLLLLLLLLLL
+    // ST instructions:         ^   ^               ^         (T=1,5,21)
+
+    // At 16 Mhz each clock tick lasts about 62.5 nanoseconds 
+    // Timing for each the sequence representing one bit of data:
+    //     HIGH 250ns + Bit 1000ns + LOW 1250ns = 2500ns/bit
 
     volatile uint8_t next, bit;
 
@@ -678,7 +687,7 @@ void Adafruit_NeoPixel::show(void) {
 #elif defined(__arm__)
 
 #if defined(__MK20DX128__) || defined(__MK20DX256__) // Teensy 3.0 & 3.1
-#define CYCLES_800_T0H  (F_CPU / 2500000)
+#define CYCLES_800_T0H  (F_CPU / 2500000)    
 #define CYCLES_800_T1H  (F_CPU / 1250000)
 #define CYCLES_800      (F_CPU /  800000)
 #define CYCLES_400_T0H  (F_CPU / 2000000)
