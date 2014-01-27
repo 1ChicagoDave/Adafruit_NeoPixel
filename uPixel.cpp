@@ -144,6 +144,17 @@ void Adafruit_NeoPixel::show(void) {
       lo = PORTD & ~pinMask;
       n1 = lo;
       if(b & 0x80) n1 = hi;
+#endif  // PORTD 
+
+#ifdef PORTB // For most AVRs
+
+      // Same as above, just switched to PORTB 
+      hi = PORTB |  pinMask;
+      lo = PORTB & ~pinMask;
+      n1 = lo;
+      if(b & 0x80) n1 = hi;
+
+#endif // PORTB
 
       // Dirty trick: RJMPs proceeding to the next instruction are used
       // to delay two clock cycles in one instruction word (rather than
@@ -229,14 +240,17 @@ void Adafruit_NeoPixel::show(void) {
         [n1]    "+r" (n1),
         [n2]    "+r" (n2),
         [count] "+w" (i)
+#ifdef PORTD
       : [port]   "I" (_SFR_IO_ADDR(PORTD)),
+#endif // PORTD
+#ifdef PORTB
+      : [port] "I" (_SFR_IO_ADDR(PORTB)),
+#endif // PORTB
         [ptr]    "e" (ptr),
         [hi]     "r" (hi),
         [lo]     "r" (lo));
 
     } else if(port == &PORTB) {
-
-#endif // PORTD
 
       // Same as above, just switched to PORTB and stripped of comments.
       hi = PORTB |  pinMask;
@@ -321,6 +335,8 @@ void Adafruit_NeoPixel::show(void) {
 #ifdef NEO_KHZ400
   } else { // end 800 KHz, do 400 KHz
 
+/* ***************************************************** The One Routine *********************************************** */
+
     // Timing is more relaxed; unrolling the inner loop for each bit is
     // not necessary.  Still using the peculiar RJMPs as 2X NOPs, not out
     // of need but just to trim the code size down a little.
@@ -354,19 +370,22 @@ void Adafruit_NeoPixel::show(void) {
       "breq nextbyte20"         "\n\t" // 1-2  if(bit == 0) skip to code at 'nextbyte20:'
 
       "rol  %[byte]"            "\n\t" // 1    b <<= 1       (T = 8)
-      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 10)	
+      "nop"                     "\n\t" // 1    nop           (T = 18)	
+      "nop"                     "\n\t" // 1    nop           (T = 18)	
+
       "out   %[port], %[lo]"    "\n\t" // 1    PORT = lo     (T = 11)	port
       "rjmp .+0"                "\n\t" // 2    nop nop       (T = 13)
       "rjmp .+0"                "\n\t" // 2    nop nop       (T = 15)
       "rjmp .+0"                "\n\t" // 2    nop nop       (T = 17)	
-      "nop"                     "\n\t" // 1    nop           (T = 18)	
+      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 17)	
+
       "rjmp head20"             "\n\t" // 2    -> head20 (next bit out). Back to the top!
     
       "nextbyte20:"             "\n\t" //                    (T = 8)
       "nop"                     "\n\t" // 1    nop           (T = 9)
       "nop"                     "\n\t" // 1    nop           (T = 10)
       "out   %[port], %[lo]"    "\n\t" // 2    PORT = lo     (T = 11)	port
-      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 13)
+      "nop"                     "\n\t" // 1    nop           (T = 9)
       "ldi  %[bit]  , 8"        "\n\t" // 1    bit = 8       (T = 14)
       "ld   %[byte] , %a[ptr]+" "\n\t" // 2    b = *ptr++    (T = 16)
       "sbiw %[count], 1"        "\n\t" // 2    i--           (T = 18)
