@@ -1,4 +1,9 @@
-/*-------------------------------------------------------------------------
+/* ------------------------------------------------------------------------
+  An attempt to create The One Routine to run all pixels from all AVRs
+  Cut-n-pasted by David R Ratliff (1ChicagoDave) 2014
+
+
+  -------------------------------------------------------------------------
   Arduino library to control a wide variety of WS2811- and WS2812-based RGB
   LED devices such as Adafruit FLORA RGB Smart Pixels and NeoPixel strips.
   Currently handles 400 and 800 KHz bitstreams on 8, 12 and 16 MHz ATmega
@@ -31,7 +36,7 @@
   <http://www.gnu.org/licenses/>.
   -------------------------------------------------------------------------*/
 
-#include "Adafruit_NeoPixel.h"
+#include "TheOnePixel.h"
 
 Adafruit_NeoPixel::Adafruit_NeoPixel(uint16_t n, uint8_t p, uint8_t t) : numLEDs(n), numBytes(n * 3), pin(p), pixels(NULL)
 #if defined(NEO_RGB) || defined(NEO_KHZ400)
