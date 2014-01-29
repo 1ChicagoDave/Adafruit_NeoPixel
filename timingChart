@@ -1,0 +1,8 @@
+
+Source  	TH+TL 	T0H 	T0L 	T1H 	T1L 	Treset
+WS2811  data sheet   [WS2811] 	1250ns  	250ns 	1000ns  	600ns	  650ns	  50,000ns
+WS2812  data sheet   [WS2812]  	1250ns	  350ns	  800ns 	700ns 	600ns	  50,000ns
+WS2812B data sheet [WS2812B]  	1250ns	  400ns	  850ns	  800ns	  45ns  	50,000ns
+www.aliexpress.com  	1250ns	350ns	  800ns	  700ns	  600ns	  50,000ns
+www.doityourselfchristmas.com	  1250ns	  250ns	  1000ns	  1000ns	  250ns	  50,000ns
+www.sparkfun.com [SparkFun]	  1250ns	  350	  800ns	  700ns	  600ns	  50,000ns
