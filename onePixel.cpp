@@ -1,6 +1,6 @@
 /* ------------------------------------------------------------------------
-  An attempt to create The One Routine to run all pixels from all AVRs
-  Cut-n-pasted by David R Ratliff (1ChicagoDave) 2014
+  An attempt to create "The One Routine to Run Them All" from all 8-bit AVRs
+  Mostly cut-n-pasted by David R Ratliff (1ChicagoDave) Jan-Feb 2014
 
 
   -------------------------------------------------------------------------
@@ -53,7 +53,7 @@ Adafruit_NeoPixel::Adafruit_NeoPixel(uint16_t n, uint8_t p, uint8_t t) : numLEDs
 }
 
 
-Adafruit_NeoPixel::Adafruit_NeoPixel(uint16_t n, uint8_t p) : numLEDs(n), numBytes(n * 3), pin(p), pixels(NULL)
+Adafruit_NeoPixel::Adafruit_NeoPixel(uint16_t n, uint8_t p, uint8_t t) : numLEDs(n), numBytes(n * 3), pin(p), pixels(NULL)
 
 #ifdef __AVR__
   ,port(portOutputRegister(digitalPinToPort(p))),
@@ -138,22 +138,22 @@ void Adafruit_NeoPixel::show(void) {
 
     //***  ONLY add ticks to end of 'bit-sandwich' to change KHZ "duty cycle", leave inter-bit-timing alone.
     
-    // for 8MHZ 400KHZ
-    // 18 inst. clocks per bit: HHHxxxxxxxLLLLLLLL
-    // ST instructions:         ^  ^      ^        (T=1,4,11)
+    // for 8MHZ ~600KHZ
+    // 18 inst. clocks per bit: HHHxxxxxxxLLL
+    // OUT instructions:        ^  ^      ^  ^      (T=0,3,10,13)
 
     // At 8 Mhz, each clock tick is about 125 nanoseconds
     // Signal timing for each bit with this code should be:
     // HIGH 375ns + Bit 875ns + LOW 1000ns = 2250ns/bit
     // *****
     
-    //  For 12 MHZ 400 KHz ?
-    // 30 instruction clocks per bit: HHHHHHxxxxxxxxxLLLLLLLLLLLLLLL
-    // ST instructions:               ^     ^        ^    (T=0,6,15)
+    //  For 12 MHZ ~600 KHz ?
+    // 30 instruction clocks per bit: HHHHxxxxxxxxxxxxxLLLLL
+    // OUT instructions:              ^   ^            ^    ^  (T=0,4,17,22)
     
     // For 16 MHz 400 KHZ 
-    // 40 inst. clocks per bit: HHHHHHHHxxxxxxxxxxxxLLLLLLLLLLLLLLLLLLLL
-    // ST instructions:         ^       ^           ^         (T=0,8,20)
+    // 40 instruction  clocks per bit: HHHHHHxxxxxxxxxxxxxxLLLLLLL
+    // OUT instructions:               ^     ^             ^      ^(T=0,6,20,26)
 
 
     volatile uint8_t next, bit;
@@ -164,44 +164,71 @@ void Adafruit_NeoPixel::show(void) {
     bit  = 8;
 
     asm volatile(
-      // This runs for all bits (0's and 1's)
-                                                    //        (8 MHZ)       (16MHZ)
-     "head20:"                  "\n\t" // Clk  Pseudocode    (T =  0) 
-      "out   %[port], %[hi]"    "\n\t" // 1    PORT = hi     (T =  1)	port
-      
+      // This runs for all bits (0's and 1's)               
+                                                    //        (8 MHZ)     (12 MHZ)      (16 MHZ)
+                                                    //        125ns/clk   80ns/clk    62.5ns/clk
+     "head20:"                  "\n\t" // Clk  Pseudocode     
+      "out   %[port], %[hi]"    "\n\t" // 1    PORT = hi     (T = 0)      (T = 0)	    (T = 0)	 write
       "sbrc %[byte] , 7"        "\n\t" // 1-2  if(b & 128)
-      "mov  %[next], %[hi]"     "\n\t" // 0-1  next = hi     (T =  3)
-      "out   %[port], %[next]"  "\n\t" // 1    PORT = next   (T =  4)	port
-      
-      "mov  %[next] , %[lo]"    "\n\t" // 1    next = lo     (T =  5)
-      "dec  %[bit]"             "\n\t" // 1    bit--         (T =  6)
+      "mov  %[next], %[hi]"     "\n\t" // 0-1  next = hi     (T = 2)      (T = 2)     (T = 2)
+  #ifdef 12MHZ
+    "nop"                     "\n\t" // 1    nop                          (T = 3)
+  #endif
+  #ifdef 16MHZ
+      "nop"                     "\n\t" // 1    nop                                    (T = 3)
+      "rjmp .+0"                "\n\t" // 2    nop nop                                (T = 5)
+  #endif      
+      "out   %[port], %[next]"  "\n\t" // 1    PORT = next   (T = 3)	    (T = 4)     (T = 6)	  write
+      "nop"                     "\n\t" // 1    nop           (T = 4)      (T = 5)     (T = 7)               
+      "mov  %[next] , %[lo]"    "\n\t" // 1    next = lo     (T = 5)      (T = 6)     (T = 8)
+      "dec  %[bit]"             "\n\t" // 1    bit--         (T = 6)      (T = 7)     (T = 9)
       "breq nextbyte20"         "\n\t" // 1-2  if(bit == 0) skip to code at 'nextbyte20:'
 
-  // This runs if next bit == 1
+  // This runs if bit == 1
 
-      "rol  %[byte]"            "\n\t" // 1    b <<= 1       (T = 8)
-      "nop"                     "\n\t" // 1    nop           (T = 18)	
-      "nop"                     "\n\t" // 1    nop           (T = 18)	
-
-      "out   %[port], %[lo]"    "\n\t" // 1    PORT = lo     (T = 11)	port
-      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 13)
-      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 15)
-      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 17)	
-      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 17)	
-
-      "rjmp head20"             "\n\t" // 2    -> head20 (next bit out). Back to the top!
+      "rol  %[byte]"            "\n\t" // 1    b <<= 1       (T = 8)      (T = 9)     (T = 11)
+      "nop"                     "\n\t" // 1    nop           (T = 9)      (T = 10)    (T = 12)	
+  #ifdef 12MHZ
+    "rjmp .+0"                "\n\t" // 2    nop nop                      (T = 12)
+    "rjmp .+0"                "\n\t" // 2    nop nop                      (T = 14)
+    "rjmp .+0"                "\n\t" // 2    nop nop                      (T = 16)
+  #endif  //  12MHZ
+  #ifdef 16MHZ
+      "nop"                     "\n\t" // 1    nop                                    (T = 13)
+      "rjmp .+0"                "\n\t" // 2    nop nop                                (T = 15)
+      "rjmp .+0"                "\n\t" // 2    nop nop                                (T = 17)
+      "rjmp .+0"                "\n\t" // 2    nop nop                                (T = 19)
+  #endif  //  16MHZ
+      "out   %[port], %[lo]"    "\n\t" // 1    PORT = lo     (T = 10)     (T = 17)    (T = 20)	  write
+      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 12)     (T = 19)    (T = 22)
+  #ifdef 12MHZ
+      "nop"                     "\n\t" // 1    nop                        (T = 20)    
+  #endif  // 12MHZ
+  #ifdef 16MHZ
+      "rjmp .+0"                "\n\t" // 2    nop nop       	                        (T = 24)
+  #endif  //  16MHZ
+      "rjmp head20"             "\n\t" // 2    -> head20    (T = 14)     (T = 22)     (T = 26)
     
     
-   // This runs if next bit == 0
+   // This runs if bit == 0
    
-      "nextbyte20:"             "\n\t" //                    (T = 8)
-      "nop"                     "\n\t" // 1    nop           (T = 9)
-      "nop"                     "\n\t" // 1    nop           (T = 10)
-      "out   %[port], %[lo]"    "\n\t" // 2    PORT = lo     (T = 11)	port
-      "nop"                     "\n\t" // 1    nop           (T = 9)
-      "ldi  %[bit]  , 8"        "\n\t" // 1    bit = 8       (T = 14)
-      "ld   %[byte] , %a[ptr]+" "\n\t" // 2    b = *ptr++    (T = 16)
-      "sbiw %[count], 1"        "\n\t" // 2    i--           (T = 18)
+      "nextbyte20:"             "\n\t" //                    (T = 8)      (T = 9)     (T = 11)
+      "nop"                     "\n\t" // 1    nop           (T = 9)      (T = 10)    (T = 12)	
+  #ifdef 12MHZ
+    "rjmp .+0"                "\n\t" // 2    nop nop                      (T = 12)
+    "rjmp .+0"                "\n\t" // 2    nop nop                      (T = 14)
+    "rjmp .+0"                "\n\t" // 2    nop nop                      (T = 16)
+  #endif  //  12MHZ
+  #ifdef 16MHZ
+      "rjmp .+0"                "\n\t" // 2    nop nop                                (T = 14)
+      "rjmp .+0"                "\n\t" // 2    nop nop                                (T = 16)
+      "rjmp .+0"                "\n\t" // 2    nop nop                                (T = 18)
+      "rjmp .+0"                "\n\t" // 2    nop nop                                (T = 20)
+  #endif  //  16MHZ
+      "out   %[port], %[lo]"    "\n\t" // 1    PORT = lo     (T = 10)     (T = 17)    (T = 21)	write
+      "ldi  %[bit]  , 8"        "\n\t" // 1    bit = 8       (T = 11)     (T = 18)    (T = 22)
+      "ld   %[byte] , %a[ptr]+" "\n\t" // 2/1/2 b = *ptr++   (T = 12)     (T = 20)    (T = 24) ( *1 inst. on MEGA)
+      "sbiw %[count], 1"        "\n\t" // 2    i--           (T = 14)     (T = 22)    (T = 26)
       "brne head20"             "\n"   // 2    if(i != 0) -> (next byte)   Back to the top!
 
       : [byte]  "+r" (b),
@@ -269,13 +296,12 @@ void Adafruit_NeoPixel::show(void) {
     //     HIGH 250ns + Bit 1000ns + LOW 1250ns = 2500ns/bit
 
    
-#endif
 
 #else
  #error "CPU SPEED NOT SUPPORTED"
-#endif
+#endif   // CPU Clock Speed
 
-//  END OF AVR  --- BEGIN ARM (TEENSY 3.0 3.1  *********
+//  END OF AVR  --- BEGIN ARM (TEENSY 3.0 3.1 )*********
 )
 #elif defined(__arm__)
 
