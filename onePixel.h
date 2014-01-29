@@ -45,6 +45,8 @@ class Adafruit_NeoPixel {
  public:
 
   // Constructor: number of LEDs, pin number, LED type
+  Adafruit_NeoPixel(uint16_t n, uint8_t p=6, uint8_t t=NEO_GRB + KHZ800);
+  // Constructor for onePixel - no KHZ parameter
   Adafruit_NeoPixel(uint16_t n, uint8_t p=6, uint8_t t=NEO_GRB);
   ~Adafruit_NeoPixel();
 
