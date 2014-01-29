@@ -36,7 +36,7 @@
   <http://www.gnu.org/licenses/>.
   -------------------------------------------------------------------------*/
 
-#include "TheOnePixel.h"
+#include "onePixel.h"
 
 Adafruit_NeoPixel::Adafruit_NeoPixel(uint16_t n, uint8_t p, uint8_t t) : numLEDs(n), numBytes(n * 3), pin(p), pixels(NULL)
 #if defined(NEO_RGB) || defined(NEO_KHZ400)
@@ -51,6 +51,20 @@ Adafruit_NeoPixel::Adafruit_NeoPixel(uint16_t n, uint8_t p, uint8_t t) : numLEDs
     memset(pixels, 0, numBytes);
   }
 }
+
+
+Adafruit_NeoPixel::Adafruit_NeoPixel(uint16_t n, uint8_t p) : numLEDs(n), numBytes(n * 3), pin(p), pixels(NULL)
+
+#ifdef __AVR__
+  ,port(portOutputRegister(digitalPinToPort(p))),
+   pinMask(digitalPinToBitMask(p))
+#endif
+{
+  if((pixels = (uint8_t *)malloc(numBytes))) {
+    memset(pixels, 0, numBytes);
+  }
+}
+
 
 Adafruit_NeoPixel::~Adafruit_NeoPixel() {
   if(pixels) free(pixels);
