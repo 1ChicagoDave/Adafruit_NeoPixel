@@ -172,7 +172,7 @@ void Adafruit_NeoPixel::show(void) {
       "sbrc %[byte] , 7"        "\n\t" // 1-2  if(b & 128)
       "mov  %[next], %[hi]"     "\n\t" // 0-1  next = hi     (T = 2)      (T = 2)     (T = 2)
   #ifdef 12MHZ
-    "nop"                     "\n\t" // 1    nop                          (T = 3)
+      "nop"                     "\n\t" // 1    nop                        (T = 3)
   #endif
   #ifdef 16MHZ
       "nop"                     "\n\t" // 1    nop                                    (T = 3)
@@ -189,9 +189,9 @@ void Adafruit_NeoPixel::show(void) {
       "rol  %[byte]"            "\n\t" // 1    b <<= 1       (T = 8)      (T = 9)     (T = 11)
       "nop"                     "\n\t" // 1    nop           (T = 9)      (T = 10)    (T = 12)	
   #ifdef 12MHZ
-    "rjmp .+0"                "\n\t" // 2    nop nop                      (T = 12)
-    "rjmp .+0"                "\n\t" // 2    nop nop                      (T = 14)
-    "rjmp .+0"                "\n\t" // 2    nop nop                      (T = 16)
+   	  "rjmp .+0"                "\n\t" // 2    nop nop                      (T = 12)
+      "rjmp .+0"                "\n\t" // 2    nop nop                      (T = 14)
+      "rjmp .+0"                "\n\t" // 2    nop nop                      (T = 16)
   #endif  //  12MHZ
   #ifdef 16MHZ
       "nop"                     "\n\t" // 1    nop                                    (T = 13)
@@ -215,9 +215,9 @@ void Adafruit_NeoPixel::show(void) {
       "nextbyte20:"             "\n\t" //                    (T = 8)      (T = 9)     (T = 11)
       "nop"                     "\n\t" // 1    nop           (T = 9)      (T = 10)    (T = 12)	
   #ifdef 12MHZ
-    "rjmp .+0"                "\n\t" // 2    nop nop                      (T = 12)
-    "rjmp .+0"                "\n\t" // 2    nop nop                      (T = 14)
-    "rjmp .+0"                "\n\t" // 2    nop nop                      (T = 16)
+      "rjmp .+0"                "\n\t" // 2    nop nop                      (T = 12)
+      "rjmp .+0"                "\n\t" // 2    nop nop                      (T = 14)
+      "rjmp .+0"                "\n\t" // 2    nop nop                      (T = 16)
   #endif  //  12MHZ
   #ifdef 16MHZ
       "rjmp .+0"                "\n\t" // 2    nop nop                                (T = 14)
@@ -248,61 +248,13 @@ void Adafruit_NeoPixel::show(void) {
   }
 #endif  // AVR
 
-// 12 MHz(ish) AVR --------------------------------------------------------
-
-
-    // 15 instruction clocks per bit: HHHHxxxxxxLLLLL
-    // OUT instructions:              ^   ^     ^     (T=0,4,10)
-
- 
-      // Don't "optimize" the OUT calls into the bitTime subroutine;
-      // we're exploiting the RCALL and RET as 3- and 4-cycle NOPs!
-   
-   
-   // ASSEMBLER REMOVED **********
-   
-
-      // Same as above, just set for PORTB & stripped of comments
-     
-      //  ASSEMBLER REMOVED **********
-      
-   
-
-    // 30 instruction clocks per bit: HHHHHHxxxxxxxxxLLLLLLLLLLLLLLL
-    // ST instructions:               ^     ^        ^    (T=1,7,16)
-
-
-   // ASSEMBLER REMOVED **********
-   
-
-
-// 16 MHz(ish) AVR --------------------------------------------------------
-
-
-    // WS2811 and WS2812 have different hi/lo duty cycles; this is
-    // similar but NOT an exact copy of the prior 400-on-8 code.
-
-    // 20 inst. clocks per bit: HHHHHxxxxxxxxLLLLLLL
-    // ST instructions:         ^    ^       ^       (T=0,5,13)
-
-
-    // The 400 KHz clock on 16 MHz MCU is the most 'relaxed' version.
-
-    // 40 inst. clocks per bit: HHHHxxxxxxxxxxxxxxxxLLLLLLLLLLLLLLLLLLLL
-    // ST instructions:         ^   ^               ^         (T=1,5,21)
-
-    // At 16 Mhz each clock tick lasts about 62.5 nanoseconds 
-    // Timing for each the sequence representing one bit of data:
-    //     HIGH 250ns + Bit 1000ns + LOW 1250ns = 2500ns/bit
-
-   
-
 #else
  #error "CPU SPEED NOT SUPPORTED"
 #endif   // CPU Clock Speed
 
 //  END OF AVR  --- BEGIN ARM (TEENSY 3.0 3.1 )*********
-)
+
+
 #elif defined(__arm__)
 
 #if defined(__MK20DX128__) || defined(__MK20DX256__) // Teensy 3.0 & 3.1
@@ -570,3 +522,4 @@ void Adafruit_NeoPixel::setBrightness(uint8_t b) {
     brightness = newBrightness;
   }
 }
+
