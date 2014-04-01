@@ -1,3 +1,24 @@
+
+
+/*
+ChicagoDave's OnePixel Library -
+
+A modification/simplification of the Adafruit Neopixel Library.
+
+Main differences -
+- Only updates NeoPixels at one rate: 600KHZ (crude testing has shown LEDs run noticably cooler at this rate)
+- Cleaned up/uniformed timing a bit among all tested/listed Arduino boards.
+- Only one set of assembler instructions to run all boards/chips at all (common) processor speeds & ports.
+--- Using 'inline' preprocessor directives to insert/remove required instructions.
+
+
+TODO:
+There are still imprivements which can be made. Feel free to let me know if you think of, or implement any.
+
+Thank you!
+*/
+
+
 /* ------------------------------------------------------------------------
   An attempt to create "The One Routine to Run Them All" from all 8-bit AVRs
   Mostly cut-n-pasted by David R Ratliff (1ChicagoDave) Jan-Feb 2014
@@ -19,7 +40,7 @@
   from Adafruit!
 
   -------------------------------------------------------------------------
-  This file is part of the Adafruit NeoPixel library.
+  This file is (*DERIVED FROM) the Adafruit NeoPixel library.
 
   NeoPixel is free software: you can redistribute it and/or modify
   it under the terms of the GNU Lesser General Public License as
